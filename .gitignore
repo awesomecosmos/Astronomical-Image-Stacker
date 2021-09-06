@@ -1,0 +1,4 @@
+src/Trash
+src/*.fit
+src/*.fits
+*.fits

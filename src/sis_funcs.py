@@ -46,6 +46,9 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
+# user-defined packages
+from convenience_functions import show_image
+
 ###############################################################################
 #--------------------SECTION ONE: HELPER FUNCTIONS----------------------------#
 ###############################################################################
@@ -210,7 +213,7 @@ def aligned_comparison_stats(unaligned_image_ccd_lst,aligned_image_ccd_lst,
     exptime = source_image_hdr['EXPTIME']
     chip_num = source_image_hdr['CHIP']
     
-    for a_file in unaligned_image_ccd_lst:
+    for a_file in unaligned_image_ccd_lst[1:]:
         hdu = CCDData(a_file,unit='adu')
         image_data = hdu.data.astype(float) 
         image_hdr = hdu.header
@@ -250,7 +253,8 @@ def aligned_comparison_stats(unaligned_image_ccd_lst,aligned_image_ccd_lst,
     ax1.set_ylabel('Count (ADU)')
     ax1.set_title('Mean pixel value for unaligned images')
     ax1.legend(loc="best")
-    ax1.grid()
+    ax1.grid(b=True, which='both', axis='both')
+    # ax1.sharex(ax3)
     
     # unaligned median
     ax2.plot(unaligned_median_count, label='median',color="deeppink")
@@ -262,7 +266,8 @@ def aligned_comparison_stats(unaligned_image_ccd_lst,aligned_image_ccd_lst,
     ax2.set_ylabel('Count (ADU)')
     ax2.set_title('Median pixel value for unaligned images')
     ax2.legend(loc="best")
-    ax2.grid()
+    ax2.grid(b=True, which='both', axis='both')
+    # ax2.sharex(ax4)
     
     # aligned mean
     ax3.plot(aligned_mean_count, label='mean',color="darkviolet")
@@ -274,7 +279,8 @@ def aligned_comparison_stats(unaligned_image_ccd_lst,aligned_image_ccd_lst,
     ax3.set_ylabel('Count (ADU)')
     ax3.set_title('Mean pixel value for aligned images')
     ax3.legend(loc="best")
-    ax3.grid()
+    ax3.grid(b=True, which='both', axis='both')
+    
     
     # aligned median
     ax4.plot(aligned_median_count, label='median',color="darkviolet")
@@ -286,7 +292,8 @@ def aligned_comparison_stats(unaligned_image_ccd_lst,aligned_image_ccd_lst,
     ax4.set_ylabel('Count (ADU)')
     ax4.set_title('Median pixel value for unaligned images')
     ax4.legend(loc="best")
-    ax4.grid()
+    ax4.grid(b=True, which='both', axis='both')
+    
     
     for ax in fig.get_axes():
         ax.label_outer()
@@ -296,6 +303,72 @@ def aligned_comparison_stats(unaligned_image_ccd_lst,aligned_image_ccd_lst,
                                                                   exptime,chip_num),
                                                                     dpi=1000)
     fig.show()
+
+def image_comparison(unaligned_image_ccd_lst,aligned_image_ccd_lst,stacked_img_ccd,outputs_path,obsdate):
+    """
+    This function produces plots of unaligned images vs aligned images, and of
+    the source image vs the stacked image.
+    
+    Parameters
+    ----------
+    unaligned_image_ccd_lst : list
+        List of CCDData objects of non-aligned images.
+    
+    aligned_image_ccd_lst : list
+        List of CCDData objects of aligned images.
+    
+    stacked_img_ccd : astropy.nddata.ccddata.CCDData
+        CCDData object of stacked image.
+    
+    outputs_path : WindowsPath object
+        Path to directory where plots are to be saved.
+    
+    obsdate : str
+        Date of observation for display/saving purposes. 
+        Ideal format should be "YYYY-MM-DD".
+    
+    Returns
+    -------
+    Nothing.
+    """
+    source_hdu = CCDData(unaligned_image_ccd_lst[0],unit='adu')
+    source_image_hdr = source_hdu.header
+    run_filename = source_image_hdr['RUN'].strip(' ')
+    target_name = source_image_hdr['FIELD'].strip(' ')
+    exptime = source_image_hdr['EXPTIME']
+    chip_num = source_image_hdr['CHIP']
+    
+    # compare unaligned vs aligned images
+    for i, unaligned_img in enumerate(unaligned_image_ccd_lst[1:]):
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10), tight_layout=True)
+        
+        # source_hdu = CCDData(unaligned_image_ccd_lst[0],unit='adu')
+        image_hdr = unaligned_img.header
+        run_filename = image_hdr['RUN'].strip(' ')
+        target_name = image_hdr['FIELD'].strip(' ')
+        exptime = image_hdr['EXPTIME']
+        chip_num = image_hdr['CHIP']
+        
+        show_image(unaligned_img, cmap='gray', ax=ax1, fig=fig, percl=90)
+        ax1.set_title('Unaligned Image for {}-{}-{}-{}s ({})'.format(run_filename,target_name,chip_num,exptime,obsdate))
+        
+        show_image(aligned_image_ccd_lst[i], cmap='gray', ax=ax2, fig=fig, percl=90)
+        ax2.set_title('Aligned Image for {}-{}-{}-{}s ({})'.format(run_filename,target_name,chip_num,exptime,obsdate))
+        
+        plt.savefig(outputs_path/"unaligned_vs_aligned_{}-{}-{}-{}.jpg".format(run_filename,target_name,chip_num,exptime),dpi=900)
+        plt.show()
+    
+    # compare source image to stacked image
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10), tight_layout=True)
+    
+    show_image(unaligned_image_ccd_lst[0], cmap='gray', ax=ax1, fig=fig, percl=90)
+    ax1.set_title('Unaligned Source Image for {}-{}-{}s ({})'.format(target_name,chip_num,exptime,obsdate))
+    
+    show_image(stacked_img_ccd, cmap='gray', ax=ax2, fig=fig, percl=90)
+    ax2.set_title('Aligned Stacked Image for {}-{}-{}s ({})'.format(target_name,chip_num,exptime,obsdate))
+    
+    plt.savefig(outputs_path/"source_vs_stacked_{}-{}-{}.jpg".format(target_name,chip_num,exptime),dpi=900)
+    plt.show()
     
 ###############################################################################
 #-------------------------------END OF CODE-----------------------------------#

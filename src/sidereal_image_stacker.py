@@ -40,16 +40,19 @@ from sis_funcs import *
 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 # defining observation date for display/saving purposes
-obsdate = "2021-02-13"
+obsdate = "2021-01-21"
 
-# defining paths
-# test_data_path = "//spcsfs/ave41/astro/ave41/SIS_TestData_v1"
-data_path = "//spcsfs/ave41/astro/ave41/ObsData-2021-02-13/ALERT/Reduced ALERT/WCS Calibrated"
+# "\\spcsfs\ave41\astro\ave41\C2021_A7"
 
+# data_path = "//spcsfs/ave41/astro/ave41/C2021_A7"
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CHANGES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #%%
+# defining paths
+# test_data_path = "//spcsfs/ave41/astro/ave41/SIS_TestData_v1"
+data_path = "//spcsfs/ave41/astro/ave41/ObsData-{}/ALERT/Reduced ALERT/WCS Calibrated".format(obsdate)
+
 # defining paths
 SIS_path = Path(data_path)
 SIS_stack_path = path_checker(SIS_path,'Sidereally Stacked Images')
@@ -82,8 +85,8 @@ source_img_data = source_img_hdu[0].data
   
 registered_image_ccd_lst = []
   
-for i in range(len(data_lst)):
-    target_img = data_lst[i]
+for i in range(len(data_lst[1:])):
+    target_img = data_lst[i+1]
     target_img_hdu = fits.open(target_img)
     target_img_data = target_img_hdu[0].data
     
@@ -92,13 +95,18 @@ for i in range(len(data_lst)):
     if not source_img_data.dtype.byteorder == '<':
         source_img_data2 = source_img_data.byteswap().newbyteorder()
         target_img_data2 = target_img_data.byteswap().newbyteorder()
-    
-        registered_image, footprint = aa.register(source_img_data2, target_img_data2)
+        
+        # the first argument of aa.register matches to the second argument
+        # so the second argument is the 'reference' image to which the first image
+        # is being matched 
+        registered_image, footprint = aa.register(target_img_data2, source_img_data2)
+        # registered_image, footprint = aa.register(source_img_data2,target_img_data2)
         registered_image_ccd = registered_img_writer(target_img,registered_image,SIS_stack_path,obsdate)
         registered_image_ccd_lst.append(registered_image_ccd)
 
     else:
-        registered_image, footprint = aa.register(source_img_data, target_img_data)
+        registered_image, footprint = aa.register(target_img_data, source_img_data)
+        # registered_image, footprint = aa.register(source_img_data,target_img_data)
         registered_image_ccd = registered_img_writer(target_img,registered_image,SIS_stack_path,obsdate)
         registered_image_ccd_lst.append(registered_image_ccd)
 
@@ -106,6 +114,7 @@ registered_image_ccd_data = []
 for i in registered_image_ccd_lst:
     registered_image_ccd_data.append(i.data)
 
+#%%
 # plotting stats for comapring non-aligned vs aligned images
 aligned_comparison_stats(data_lst_images,registered_image_ccd_lst,outputs_path,obsdate)
 
@@ -129,11 +138,12 @@ plot_filename_to_write = "{}-stacked-stats-violin-{}-{}-{}-{}-{}.jpg".format(obs
                                                         filter_colour,obs_set,
                                                         chip_num)
 # stacking aligned images together
-stacked_img = sum(registered_image_ccd_data) / len(registered_image_ccd_data)
+stacked_img = sum(registered_image_ccd_data) 
 stacked_img_ccd = CCDData(stacked_img,unit='adu')
 stacked_img_ccd.header = source_img_hdr1
 stacked_img_ccd.write(SIS_stack_path/filename_to_write,overwrite=True)
 
+#%%
 # violin plot of stacked image counts
 plt.figure()
 sns.set_theme(style="whitegrid")
@@ -142,6 +152,10 @@ ax.set_title('Distribution of counts for stacked image')
 ax.set_xlabel('Counts')
 plt.savefig(outputs_path/plot_filename_to_write,dpi=900)
 plt.show()
+
+#%%
+# comparing aligned vs unaligned, and source vs stacked images
+image_comparison(data_lst_images,registered_image_ccd_lst,stacked_img_ccd,outputs_path,obsdate)
 
 #%%
 #================================ don't touch ================================#

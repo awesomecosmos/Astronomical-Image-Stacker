@@ -2,3 +2,4 @@ src/Trash
 src/*.fit
 src/*.fits
 *.fits
+src/*jpeg

@@ -206,9 +206,6 @@ phot_table_mag = phot_table['mag']
 phot_table_flux = phot_table['flux']
 
 #%%
-# error stuff
-error = 0.1 * data
-
 # annulus stuff
 annulus_masks = annulus_apertures.to_mask(method='center')
 plt.imshow(annulus_masks[0], interpolation='nearest')
@@ -216,7 +213,7 @@ plt.colorbar()
 annulus_data = annulus_masks[0].multiply(data)
 mask = annulus_masks[0].data
 annulus_data_1d = annulus_data[mask > 0]
-annulus_data_1d.shape
+print(annulus_data_1d.shape)
 _, median_sigclip, _ = sigma_clipped_stats(annulus_data_1d)
 print(median_sigclip)  
 
@@ -236,6 +233,9 @@ wcs = WCS(hdu.header)
 catalog = load_spitzer_catalog() 
 positions = SkyCoord(catalog['l'], catalog['b'], frame='galactic')  
 aperture = SkyCircularAperture(positions, r=4.8 * u.arcsec) 
+
+# error stuff
+error = 0.1 * data
 
 #%%
 phot_table = aperture_photometry(data, apertures, error=error, wcs=wcs)

@@ -241,12 +241,10 @@ error = 0.1 * data
 phot_table = aperture_photometry(data, apertures, error=error, wcs=wcs)
 phot_table['annulus_median'] = bkg_median
 phot_table['aper_bkg'] = bkg_median * apertures.area
-phot_table['aper_sum_bkgsub'] = phot_table['aperture_sum'] - phot_table['aper_bkg']
+phot_table['aper_sum_bkgsub'] = phot_table['aperture_sum'].value - phot_table['aper_bkg']
 factor = (1.2 * u.arcsec) ** 2 / u.pixel
 fluxes_catalog = catalog['f4_5']  
 converted_aperture_sum = (phot_table['aperture_sum'] * factor).to(u.mJy / u.pixel) 
-# for col in phot_table.colnames:
-#     phot_table[col].info.format = '%.8g'  # for consistent table output
 print(phot_table)
 
 #%%
